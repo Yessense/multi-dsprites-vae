@@ -7,7 +7,6 @@ from matplotlib import pyplot as plt
 from pytorch_lightning.utilities.types import STEP_OUTPUT, EPOCH_OUTPUT
 from torch import nn
 
-from src.dataset.dataset import transform_to_image
 
 torch.set_printoptions(sci_mode=False)
 
@@ -20,17 +19,19 @@ class MnistSceneEncoder(pl.LightningModule):
     def add_model_specific_args(parent_parser: ArgumentParser):
         parser = parent_parser.add_argument_group("MnistSceneEncoder")
         parser.add_argument("--lr", type=float, default=0.001)
-        parser.add_argument("--image_size", type=Tuple[int, int, int], default=(1, 128, 128))  # type: ignore
+        parser.add_argument("--image_size", type=Tuple[int, int, int], default=(1, 64, 64))  # type: ignore
         parser.add_argument("--latent_dim", type=int, default=1024)
+        parser.add_argument("--n_features", type=int, default=5)
         return parent_parser
 
-    def __init__(self, image_size: Tuple[int, int, int] = (1, 128, 128),
+    def __init__(self, image_size: Tuple[int, int, int] = (1, 64, 64),
                  latent_dim: int = 1024,
-                 lr: float = 0.001, **kwargs):
+                 lr: float = 0.001,
+                 n_features: int = 5, **kwargs,):
         super().__init__()
         self.step_n = 0
-        self.encoder = Encoder(latent_dim=latent_dim, image_size=image_size)
-        self.decoder = Decoder(latent_dim=latent_dim, image_size=image_size)
+        self.encoder = Encoder(latent_dim=latent_dim, image_size=image_size, n_features=n_features)
+        self.decoder = Decoder(latent_dim=latent_dim, image_size=image_size, n_features=n_features)
         self.img_dim = image_size
         self.lr = lr
         self.latent_dim = latent_dim
@@ -132,37 +133,43 @@ class MnistSceneEncoder(pl.LightningModule):
         return self.decoder(scenes_z), self.decoder(result_z)
 
     def training_step(self, batch):
-        scene, masks, labels = batch
+        scene, objs, labels, masks = batch
 
-        masks_encoded = []
+        objs_encoded = []
         mus = []
         log_vars = []
 
-        for i in range(masks.shape[1]):
-            mask = masks[:, i]
-            mu, log_var = self.encoder(mask)
+        for i in range(objs.shape[1]):
+            obj = objs[:, i]
+            mu, log_var = self.encoder(obj)
 
             z = self.reparameterize(mu, log_var)
+            z = z.view(-1, 5, self.latent_dim)
+            z = z.sum(dim=1)
 
             mus.append(mu)
             log_vars.append(log_var)
 
-            masks_encoded.append(z)
+            objs_encoded.append(z)
 
         # collect mask vectors to one
         mu: torch.Tensor = torch.stack(mus, dim=1)
         log_var: torch.Tensor = torch.stack(log_vars, dim=1)
-        z: torch.Tensor = torch.stack(masks_encoded, dim=1)
+        z: torch.Tensor = torch.stack(objs_encoded, dim=1)
 
         # multiply by zero empty pictures
-        zeroing: torch.Tensor = labels.expand(z.size())
+        zeroing_scene: torch.Tensor = labels.expand(z.size())
+        zeroing_m_l: torch.Tensor = labels.expand(mu.size())
+
+
         divider = torch.sum(labels, dim=1)
-        divider = divider.expand(-1, self.latent_dim)
+        divider_scene = divider.expand(-1, self.latent_dim)
+        divider_m_l = divider.expand(-1, self.latent_dim * 5)
 
         # divide by number of actual images
-        mu = torch.sum(mu * zeroing, dim=1) / divider
-        log_var = torch.sum(log_var * zeroing, dim=1) / divider
-        z = torch.sum(z * zeroing, dim=1) / divider
+        mu = torch.sum(mu * zeroing_m_l, dim=1) / divider_m_l
+        log_var = torch.sum(log_var * zeroing_m_l, dim=1) / divider_m_l
+        z = torch.sum(z * zeroing_scene, dim=1) / divider_scene
 
         # reconstruct from sum vector
         reconstruction = self.decoder(z)

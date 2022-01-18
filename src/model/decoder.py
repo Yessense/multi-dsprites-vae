@@ -6,8 +6,9 @@ from torch import nn
 
 
 class Decoder(nn.Module):
-    def __init__(self, image_size: Tuple[int, int, int] = (1, 128, 128),
-                 latent_dim=1024):
+    def __init__(self, image_size: Tuple[int, int, int] = (1, 64, 64),
+                 latent_dim: int = 1024,
+                 n_features: int = 5):
         super(Decoder, self).__init__()
 
         # Layer parameters
@@ -16,7 +17,9 @@ class Decoder(nn.Module):
 
         self.latent_dim = latent_dim
         self.image_size = image_size
-        self.reshape = (256, kernel_size, kernel_size)
+        self.n_features = n_features
+        self.in_size = self.latent_dim * self.n_features
+        self.reshape = (128, kernel_size, kernel_size)
 
         n_channels = self.image_size[0]
 
@@ -27,7 +30,7 @@ class Decoder(nn.Module):
         # Convolutional layers
         cnn_kwargs = dict(kernel_size=kernel_size, stride=2, padding=1)
 
-        self.convT5 = nn.ConvTranspose2d(256, 128, **cnn_kwargs)
+        # self.convT5 = nn.ConvTranspose2d(256, 128, **cnn_kwargs)
         self.convT4 = nn.ConvTranspose2d(128, 64, **cnn_kwargs)
         self.convT3 = nn.ConvTranspose2d(64, 32, **cnn_kwargs)
         self.convT2 = nn.ConvTranspose2d(32, 16, **cnn_kwargs)
@@ -44,7 +47,7 @@ class Decoder(nn.Module):
         x = x.view(-1, *self.reshape)
 
         # Convolutional layers with ReLu activations
-        x = self.activation(self.convT5(x))
+        # x = self.activation(self.convT5(x))
         x = self.activation(self.convT4(x))
         x = self.activation(self.convT3(x))
         x = self.activation(self.convT2(x))

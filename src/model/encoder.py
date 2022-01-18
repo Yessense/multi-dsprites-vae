@@ -6,7 +6,9 @@ from torch import nn
 
 
 class Encoder(nn.Module):
-    def __init__(self, image_size: Tuple[int, int, int] = (1, 128, 128), latent_dim: int = 1024):
+    def __init__(self, image_size: Tuple[int, int, int] = (1, 64, 64),
+                 latent_dim: int = 1024,
+                 n_features: int = 5):
         super(Encoder, self).__init__()
 
         # Layer parameters
@@ -14,7 +16,8 @@ class Encoder(nn.Module):
         hidden_dim = 1024
         self.latent_dim = latent_dim
         self.image_size = image_size
-        self.reshape = (256, kernel_size, kernel_size)
+        self.reshape = (128, kernel_size, kernel_size)
+        self.n_features = n_features
 
         n_channels = self.image_size[0]
 
@@ -24,14 +27,13 @@ class Encoder(nn.Module):
         self.conv2 = nn.Conv2d(16, 32, **cnn_kwargs)
         self.conv3 = nn.Conv2d(32, 64, **cnn_kwargs)
         self.conv4 = nn.Conv2d(64, 128, **cnn_kwargs)
-        self.conv5 = nn.Conv2d(128, 256, **cnn_kwargs)
+        # self.conv5 = nn.Conv2d(128, 256, **cnn_kwargs)
 
+        self.out_shape = self.latent_dim * 2 * n_features
         # Fully connected layers
-        self.lin1 = nn.Linear(np.product(self.reshape), self.latent_dim * 2)
-        # self.lin2 = nn.Linear(hidden_dim * 2, hidden_dim * 2)
-
+        self.lin1 = nn.Linear(np.product(self.reshape), self.out_shape)
         # Fully connected layers for mean and variance
-        self.latent_layer = nn.Linear(self.latent_dim * 2, self.latent_dim * 2)
+        self.latent_layer = nn.Linear(self.out_shape, self.out_shape)
 
         self.activation = torch.nn.GELU()
 
@@ -47,7 +49,7 @@ class Encoder(nn.Module):
         # print(f'Conv3 shape: {x.shape}')
         x = self.activation(self.conv4(x))
         # print(f'Conv4 shape: {x.shape}')
-        x = self.activation(self.conv5(x))
+        # x = self.activation(self.conv5(x))
         # print(f'Conv5 shape: {x.shape}')
 
         # Fully connected layers with ReLu activations
