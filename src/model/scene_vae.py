@@ -14,7 +14,7 @@ from src.model.decoder import Decoder
 from src.model.encoder import Encoder
 
 
-class MnistSceneEncoder(pl.LightningModule):
+class MultiDspritesVAE(pl.LightningModule):
     @staticmethod
     def add_model_specific_args(parent_parser: ArgumentParser):
         parser = parent_parser.add_argument_group("MnistSceneEncoder")
@@ -158,11 +158,11 @@ class MnistSceneEncoder(pl.LightningModule):
         z: torch.Tensor = torch.stack(objs_encoded, dim=1)
 
         # multiply by zero empty pictures
-        zeroing_scene: torch.Tensor = labels.expand(z.size())
-        zeroing_m_l: torch.Tensor = labels.expand(mu.size())
+        zeroing_scene: torch.Tensor = masks.expand(z.size())
+        zeroing_m_l: torch.Tensor = masks.expand(mu.size())
 
 
-        divider = torch.sum(labels, dim=1)
+        divider = torch.sum(masks, dim=1)
         divider_scene = divider.expand(-1, self.latent_dim)
         divider_m_l = divider.expand(-1, self.latent_dim * 5)
 

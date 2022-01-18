@@ -68,7 +68,7 @@ class Encoder(nn.Module):
 
         # x.shape -> (batch_size, (mu+logvar), latent_dim)
         # x.shape -> (128, 2, 1024)
-        x = x.view(-1, 2, self.latent_dim)
+        x = x.view(-1, 2, self.latent_dim * 5)
         # print(f'View shape: {x.shape}')
 
         mu, logvar = x.unbind(1)

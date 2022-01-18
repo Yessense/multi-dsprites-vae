@@ -64,8 +64,8 @@ class MultiDsprites(IterableDataset):
 
         scene = torch.from_numpy(scene).float()
         objs = torch.from_numpy(np.array(objs)).float()
-        labels = torch.from_numpy(np.array(labels)).float()
-        masks = torch.from_numpy(np.array(masks)).float()
+        labels = torch.from_numpy(np.array(labels)).float().unsqueeze(-1)
+        masks = torch.from_numpy(np.array(masks)).float().unsqueeze(-1)
 
         return scene, objs, labels, masks
 

@@ -3,8 +3,8 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from torch.utils.data import DataLoader
 from torchvision.transforms import ToTensor
 
-from src.dataset.iterable_dataset import MnistIterableDataset
-from src.model.scene_vae import MnistSceneEncoder
+from src.dataset.iterable_dataset import MultiDsprites
+from src.model.scene_vae import MultiDspritesVAE
 import pytorch_lightning as pl
 from argparse import ArgumentParser
 
@@ -22,7 +22,7 @@ program_parser.add_argument("--dataset_size", type=int, default=10 ** 6)
 program_parser.add_argument("--batch_size", type=int, default=256)
 
 # add model specific args
-parser = MnistSceneEncoder.add_model_specific_args(parent_parser=parser)
+parser = MultiDspritesVAE.add_model_specific_args(parent_parser=parser)
 
 # add all the available trainer options to argparse#
 parser = pl.Trainer.add_argparse_args(parser)
@@ -34,7 +34,7 @@ args = parser.parse_args()
 # Load dataset
 # ------------------------------------------------------------
 
-iterable_dataset = MnistIterableDataset(args.mnist_download_dir, args.dataset_size)
+iterable_dataset = MultiDsprites(size=args.dataset_size)
 loader = DataLoader(iterable_dataset, batch_size=args.batch_size, num_workers=1)
 
 # ------------------------------------------------------------
@@ -43,7 +43,7 @@ loader = DataLoader(iterable_dataset, batch_size=args.batch_size, num_workers=1)
 
 # model
 dict_args = vars(args)
-autoencoder = MnistSceneEncoder(**dict_args)
+autoencoder = MultiDspritesVAE(**dict_args)
 
 # ------------------------------------------------------------
 # Callbacks
