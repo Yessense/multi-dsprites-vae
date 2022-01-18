@@ -45,7 +45,6 @@ class MultiDsprites(IterableDataset):
                     label = self.dsprites.get_label(n)
                     masks.append(img)
                     labels.append(label)
-                    print(i)
                     break
         return scene, masks, labels
 
